@@ -1,0 +1,11 @@
+# Local configs etc.
+.vscode
+.cache
+
+# Build artifacts
+*.o
+*.out
+*.exe
+bld/
+build/
+output/
