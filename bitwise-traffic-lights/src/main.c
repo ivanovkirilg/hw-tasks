@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -18,15 +19,13 @@ int main()
         return EXIT_FAILURE;
     }
 
-    unsigned int timeout = 1;
-    while (timeout > 0)
+    while (true)
     {
         setLights();
 
         VIS_visualize();
 
-        timeout = SIM_step();
-        sleep(timeout);
+        sleep(SIM_step());
     }
 }
 

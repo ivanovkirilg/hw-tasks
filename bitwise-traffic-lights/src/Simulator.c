@@ -12,7 +12,11 @@
 /* --------------------------------------------------------------------------
  *                               Defines
  * -------------------------------------------------------------------------- */
-#define MAX_CYCLE_LEN 20
+#define MAX_CYCLE_LEN   20
+#define BITS_PER_BYTE   8
+#define BITS_PER_LIGHT  3
+#define TIMEOUT_OFFSET  (sizeof(step_t) * BITS_PER_BYTE - 4) // Last 4 bits
+#define TIMEOUT_MASK    (0b1111 << TIMEOUT_OFFSET)
 
 
 /* --------------------------------------------------------------------------
@@ -45,12 +49,12 @@ extern int SIM_initialize()
 
 bool SIM_getState(enum LightPosition light, enum LightColor color)
 {
-    return g_cycle[g_iStep] & 1u << ((light * 3) + color);
+    return g_cycle[g_iStep] & 1u << ((light * BITS_PER_LIGHT) + color);
 }
 
 unsigned int SIM_step(void)
 {
-    unsigned int timeout = g_cycle[g_iStep] >> (16 - 4);
+    unsigned int timeout = g_cycle[g_iStep] >> TIMEOUT_OFFSET;
 
     g_iStep++;
     if (g_cycle[g_iStep] == 0)
@@ -91,6 +95,15 @@ static int sim_read()
         }
 
         cycleStep = (input[0] << 8u) | input[1];
+
+        if ((cycleStep != 0) && ((cycleStep & TIMEOUT_MASK) == 0))
+        {
+            fprintf(stderr, "Warning: received non-terminating step with zero "
+                            "timeout at position %zu. Continuing.\n",
+                            i);
+            g_cycle[i] = 0;
+            return SIMULATOR_OK;
+        }
         g_cycle[i] = cycleStep;
     }
 
