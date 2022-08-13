@@ -5,19 +5,12 @@
 #include "Visualization.h"
 #include "Simulator.h"
 
+void initialize(void);
 void setLights(void);
 
 int main()
 {
-    if (SIM_initialize() != SIMULATOR_OK)
-    {
-        return EXIT_FAILURE;
-    }
-
-    if (VIS_initialize() != VISUALIZATION_OK)
-    {
-        return EXIT_FAILURE;
-    }
+    initialize();
 
     while (true)
     {
@@ -26,6 +19,19 @@ int main()
         VIS_visualize();
 
         sleep(SIM_step());
+    }
+}
+
+void initialize()
+{
+    if (SIM_initialize() != SIMULATOR_OK)
+    {
+        exit(EXIT_FAILURE);
+    }
+
+    if (VIS_initialize() != VISUALIZATION_OK)
+    {
+        exit(EXIT_FAILURE);
     }
 }
 
