@@ -25,13 +25,14 @@
 typedef unsigned short step_t;
 
 static int sim_read(void);
+static step_t sim_deserializeStep(const size_t stepIdx);
 
 
 /* --------------------------------------------------------------------------
  *                               Definitions
  * -------------------------------------------------------------------------- */
 static size_t g_iStep = 0;
-static step_t g_cycle[MAX_CYCLE_LEN] = {0};
+static step_t g_cycle[MAX_CYCLE_LEN] = { 1, 0 };
 
 
 extern int SIM_initialize()
@@ -70,10 +71,7 @@ unsigned int SIM_step(void)
  * -------------------------------------------------------------------------- */
 static int sim_read()
 {
-    int input[2] = {0};
-    step_t cycleStep = 1;
-
-    for (size_t i = 0; cycleStep != 0; i++)
+    for (size_t i = 0; g_cycle[i] != 0; i++)
     {
         if (i >= MAX_CYCLE_LEN)
         {
@@ -83,28 +81,7 @@ static int sim_read()
             return SIMULATOR_ERROR;
         }
 
-        input[0] = fgetc(stdin);
-        input[1] = fgetc(stdin);
-        if ((input[0] == EOF) || (input[1] == EOF))
-        {
-            fprintf(stderr, "Warning: simulator input ended at cycle step %zu "
-                            "before it was properly terminated. Continuing.\n",
-                            i);
-            g_cycle[i] = 0;
-            return SIMULATOR_OK;
-        }
-
-        cycleStep = (input[0] << 8u) | input[1];
-
-        if ((cycleStep != 0) && ((cycleStep & TIMEOUT_MASK) == 0))
-        {
-            fprintf(stderr, "Warning: received non-terminating step with zero "
-                            "timeout at position %zu. Continuing.\n",
-                            i);
-            g_cycle[i] = 0;
-            return SIMULATOR_OK;
-        }
-        g_cycle[i] = cycleStep;
+        g_cycle[i] = sim_deserializeStep(i);
     }
 
     if (g_cycle[0] == 0)
@@ -114,4 +91,33 @@ static int sim_read()
     }
 
     return SIMULATOR_OK;
+}
+
+static step_t sim_deserializeStep(const size_t stepIdx)
+{
+    int input[2] = {
+        fgetc(stdin),
+        fgetc(stdin)
+    };
+
+    if ((input[0] == EOF) || (input[1] == EOF))
+    {
+        fprintf(stderr, "Warning: simulator input ended at cycle step %zu "
+                        "before it was properly terminated. Continuing.\n",
+                        stepIdx);
+        return 0;
+    }
+
+    const step_t step = (input[0] << 8u) | input[1];
+
+    if (   (step != 0)                    // Non-terminating,
+        && ((step & TIMEOUT_MASK) == 0) ) // but 0 timeout
+    {
+        fprintf(stderr, "Warning: received non-terminating step with zero "
+                        "timeout at position %zu. Continuing.\n",
+                        stepIdx);
+        return 0;
+    }
+
+    return step;
 }
